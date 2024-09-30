@@ -9,21 +9,27 @@ library(ggpubr)
 core_count=16
 args = commandArgs(trailingOnly=TRUE)
 cond=as.character(args[1])
+
+
+if (1==2) {
+
 sbayesr_data <-  read.table(paste(sep="",'/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/',cond, '/auto-sbayesr.pgs.snpRes'),header=T)
 names(sbayesr_data) <- c("id", "rsid","chr", "pos","a1","a0","freq","beta","beta_se","PIP","LastSampleEff")
 obj.bigSNP.all <- snp_attach("/data/clusterfs/lag/users/sousoh/ukbb/genetic/bigsnp/processed/big40_all_subj_subset_hapmap_2k.rds")
 map <- as.data.frame(cbind(obj.bigSNP.all$map$chromosome,obj.bigSNP.all$map$rsid,obj.bigSNP.all$map$physical.pos,obj.bigSNP.all$map$allele1, obj.bigSNP.all$map$allele2))
+
 #check ref allele
 names(map) <- c("chr","rsid","pos","a0","a1")
 map$chr<-as.integer(map$chr)
 sbayesr_match <- snp_match(sbayesr_data, join_by_pos = FALSE, map, return_flip_and_rev=TRUE, strand_flip =FALSE)
 sbayesr_score <- big_prodMat(obj.bigSNP.all$genotype, as.matrix(sbayesr_match$beta), ind.col = sbayesr_match$'_NUM_ID_',  ncores = core_count, block.size=5000 )
 write.table(sbayesr_score,        file=paste(sep="",'/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/',cond, '/auto-sbayesr.pgs'),quote=F,col.names=F,row.names=F)
+}
 
 
-#sbayesr_score <- read.table(paste(sep="",'/data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/prs-thresholds/',cond,'/100.txt.sorted'),header=F)[,2]
 pgs_subid<-read.table('/data/clusterfs/lag/users/sousoh/ukbb/genetic/bigsnp/list-all-subjects-genetics-subid-and-indices.txt',header=F)[,1]
-#sbayesr_score <- as.numeric(read.table(paste(sep="",'/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/',cond, '/auto-sbayesr.pgs'),header=F)[,1])
+#comment below if calculating sbayesR PGS inline above
+sbayesr_score <- as.numeric(read.table(paste(sep="",'/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/',cond, '/auto-sbayesr.pgs'),header=F)[,1])
 
 #creating dMRI covariate dataframe
 base="/data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/"

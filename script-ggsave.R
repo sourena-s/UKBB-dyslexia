@@ -67,21 +67,21 @@ if (master_df[max_ic_tbm,]$XCA == "ica") {dim_name=paste(sep="","-",master_df[ma
 cs_lines_df <- gather(master_df[comp_ids,][1,][,c("cs1_rsq","cs2_rsq","cs3_rsq","cs4_rsq","cs5_rsq","sbayesR_rsq")],key="phi",value="rsq", cs1_rsq, cs2_rsq, cs3_rsq, cs4_rsq, cs5_rsq, sbayesR_rsq)
 
 gg_tbm <-  ggplot(master_df[comp_ids,]) + geom_point(size=1, aes(x=log(lambda),color=factor(round(delta,2)),y=lassosum_rsq)) + 
-	geom_line(aes(x=log(lambda),color=factor(round(delta,2)),y=lassosum_rsq,linetype="Frequentist"   )) +
-	guides(colour=guide_legend(title="Lassosum2 L₂ regularisation") ) + xlab("Lassosum2 L₁ regularisation") + ylab("IDP explained variance (R²)") + 
+	geom_line(size= 1/ .pt, aes(x=log(lambda),color=factor(round(delta,2)),y=lassosum_rsq,linetype="Frequentist"   )) +
+	guides(colour=guide_legend(title="Lassosum2 L₂ regularisation") ) + xlab("Lassosum2 L₁ regularisation") + ylab("IDP explained variance (r²)") + 
 	ylim(c(0,1.1*max_y)) +
 	ggtitle(paste(sep="", "sMRI TBM\n", toupper(master_df[max_ic_tbm,]$XCA), dim_name, " component ",master_df[max_ic_tbm,]$ic_num )) +
 	   guides(linetype=guide_legend(order=1,keywidth = 3 , override.aes=list(alpha=1 ) ) ) + 
    	   scale_color_discrete(name="Lassosum2\nregularisation (L₂)") +
-	   guides(color=guide_legend(order=3,keywidth = 3 , override.aes=list(alpha=1, linewidth=1 ) ) ) + 
+	   guides(color=guide_legend(order=3,keywidth = 3 , override.aes=list(alpha=1, linewidth=3 / .pt ) ) ) + 
 	   new_scale_color()+
-	geom_hline(data=cs_lines_df, aes(yintercept=rsq ,linetype="Bayesian" ,color=factor(phi)),linewidth=1)+ 
+	geom_hline(data=cs_lines_df, aes(yintercept=rsq ,linetype="Bayesian" ,color=factor(phi)),linewidth=1/ .pt)+ 
 	scale_color_manual("Shrinkage type",values=c("cs1_rsq"="red", "cs2_rsq"=grey(0.7), "cs3_rsq"=grey(0.5),"cs4_rsq"=grey(0.3), "cs5_rsq"=grey(0.1), "sbayesR_rsq"="Blue" ), labels=c("PRS-CS (auto)","PRS-CS (Φ=10⁻⁶)","PRS-CS (Φ=10⁻⁴)","PRS-CS (Φ=0.01)","PRS-CS (Φ=1)", "SBayesR (auto)")) +
 	scale_linetype_manual("PGS type",values=c("Frequentist"="solid", "Bayesian"="11"))  + 
-	guides(linetype=guide_legend(order=1,keywidth = 3, keyheight = 1  , override.aes=list(alpha=1, linewidth=1 ) ) ) +
+	guides(linetype=guide_legend(order=1,keywidth = 3, keyheight = 1  , override.aes=list(alpha=1) ) ) +
 	guides(color=guide_legend(order=2,keywidth = 3 , override.aes=list(alpha=1,linetype="11" ) ) ) + 
-	geom_label_repel(data=master_df[comp_ids,][master_df[comp_ids,]$lassosum_rsq==max(master_df[comp_ids,]$lassosum_rsq),],aes(x=log(lambda),y=lassosum_rsq, label= paste("R² =", round(max(master_df[comp_ids_tbm,]$lassosum_rsq),4),"\nn =",n_var_tbm,"variants" ) ), nudge_x=0.5, nudge_y=25e-5  ) +
-	theme( panel.background = element_blank(), axis.line = element_line(colour = "black"),legend.position="none")
+	geom_label_repel(size=7 / .pt , data=master_df[comp_ids,][master_df[comp_ids,]$lassosum_rsq==max(master_df[comp_ids,]$lassosum_rsq),],aes(x=log(lambda),y=lassosum_rsq, label= paste("r² =", round(max(master_df[comp_ids_tbm,]$lassosum_rsq),4),"\nn =",n_var_tbm,"variants" ) ), nudge_x=0.5, nudge_y=25e-5  ) +
+	theme( axis.text = element_text(size=8), axis.title = element_text(size=8), text = element_text(size=7), panel.background = element_blank(), axis.line = element_line(colour = "black", size=0.5/ .pt),legend.position="none")
 
 comp_ids <- comp_ids_dmri
 
@@ -89,21 +89,21 @@ cs_lines_df <- gather(master_df[comp_ids,][1,][,c("cs1_rsq","cs2_rsq","cs3_rsq",
 
 if (master_df[max_ic_dmri,]$XCA == "ica") {dim_name=paste(sep="","-",master_df[max_ic_dmri,]$dim)}else{dim_name=""}
 gg_dmri <- ggplot(master_df[comp_ids,]) + geom_point(size=1, aes(x=log(lambda),color=factor(round(delta,2)),y=lassosum_rsq)) + 
-	geom_line(aes(x=log(lambda),color=factor(round(delta,2)),y=lassosum_rsq,linetype="Frequentist"   )) +
+	geom_line(size=1/ .pt , aes(x=log(lambda),color=factor(round(delta,2)),y=lassosum_rsq,linetype="Frequentist"   )) +
 	guides(colour=guide_legend(title="Lassosum2 L₂ regularisation") ) + xlab("Lassosum2 L₁ regularisation") + ylab("") + #ylab("IDP explained variance (R²)") + 
 	ylim(c(0,1.1*max_y)) +
 	ggtitle(paste(sep="", "dMRI AFD\n", toupper(master_df[max_ic_dmri,]$XCA), dim_name, " component ",master_df[max_ic_dmri,]$ic_num )) +
 	   guides(linetype=guide_legend(order=1,keywidth = 3 , override.aes=list(alpha=1 ) ) ) + 
    	   scale_color_discrete(name="Lassosum2\nregularisation (L₂)") +
-	   guides(color=guide_legend(order=3,keywidth = 3 , override.aes=list(alpha=1, linewidth=1 ) ) ) + 
+	   guides(color=guide_legend(order=3,keywidth = 3 , override.aes=list(alpha=1 ) ) ) + 
 	   new_scale_color()+
-	geom_hline(data=cs_lines_df, aes(yintercept=rsq ,linetype="Bayesian" ,color=factor(phi)),linewidth=1)+ 
+	geom_hline(data=cs_lines_df, aes(yintercept=rsq ,linetype="Bayesian" ,color=factor(phi)),linewidth=1/ .pt)+ 
 	scale_color_manual("Shrinkage type",values=c("cs1_rsq"="red", "cs2_rsq"=grey(0.7), "cs3_rsq"=grey(0.5),"cs4_rsq"=grey(0.3), "cs5_rsq"=grey(0.1), "sbayesR_rsq"="Blue" ), labels=c("PRS-CS (auto)","PRS-CS (Φ=10⁻⁶)","PRS-CS (Φ=10⁻⁴)","PRS-CS (Φ=0.01)","PRS-CS (Φ=1)", "SBayesR (auto)")) +
 	scale_linetype_manual("PGS type",values=c("Frequentist"="solid", "Bayesian"="11"))  + 
-	guides(linetype=guide_legend(order=1,keywidth = 3, keyheight = 1  , override.aes=list(alpha=1, linewidth=1 ) ) ) +
+	guides(linetype=guide_legend(order=1,keywidth = 3, keyheight = 1  , override.aes=list(alpha=1, linewidth=3 / .pt ) ) ) +
 	guides(color=guide_legend(order=2,keywidth = 3 , override.aes=list(alpha=1,linetype="11" ) ) ) + 
-	geom_label_repel(data=master_df[comp_ids,][master_df[comp_ids,]$lassosum_rsq==max(master_df[comp_ids,]$lassosum_rsq),],aes(x=log(lambda),y=lassosum_rsq, label= paste("R² =", round(max(master_df[comp_ids_dmri,]$lassosum_rsq),4) ,"\nn =",n_var_dmri,"variants"  ) ), nudge_x=0.5, nudge_y=25e-5  ) +
-	theme( panel.background = element_blank(), axis.line = element_line(colour = "black"),legend.position="none")
+	geom_label_repel(size=7/ .pt , data=master_df[comp_ids,][master_df[comp_ids,]$lassosum_rsq==max(master_df[comp_ids,]$lassosum_rsq),],aes(x=log(lambda),y=lassosum_rsq, label= paste("R² =", round(max(master_df[comp_ids_dmri,]$lassosum_rsq),4) ,"\nn =",n_var_dmri,"variants"  ) ), nudge_x=0.5, nudge_y=25e-5  ) +
+	theme( axis.text = element_text(size=8), axis.title = element_text(size=8), text = element_text(size=7),   panel.background = element_blank(), axis.line = element_line(colour = "black", size=0.5/ .pt),legend.position="none")
 
 
 
@@ -116,16 +116,16 @@ gg_dmri_legend <- ggplot(master_df[comp_ids,]) + geom_point(size=1, aes(x=log(la
    	   scale_color_discrete(name="Lassosum2\nL₂ regularisation") +
 	   guides(color=guide_legend(order=3,keywidth = 1 , override.aes=list(alpha=1, linewidth=1,size=2 ) ) ) + 
 	   new_scale_color()+
-	geom_hline(data=cs_lines_df, aes(yintercept=rsq ,linetype="Bayesian" ,color=factor(phi)),linewidth=1)+ 
+	geom_hline(data=cs_lines_df, aes(yintercept=rsq ,linetype="Bayesian" ,color=factor(phi)),linewidth=3/ .pt)+ 
 	scale_color_manual("Shrinkage type",values=c("cs1_rsq"="red", "cs2_rsq"=grey(0.7), "cs3_rsq"=grey(0.5),"cs4_rsq"=grey(0.3), "cs5_rsq"=grey(0.1), "sbayesR_rsq"="Blue" ), labels=c("PRS-CS (auto)","PRS-CS (Φ=10⁻⁶)","PRS-CS (Φ=10⁻⁴)","PRS-CS (Φ=0.01)","PRS-CS (Φ=1)", "SBayesR (auto)")) +
 	scale_linetype_manual("PGS type",values=c("Frequentist"="solid", "Bayesian"="11"))  + 
 	guides(color=guide_legend(order=2,keywidth = 3 , override.aes=list(alpha=1,linetype="11" ) ) ) + 
-	theme( panel.background = element_blank(), axis.line = element_line(colour = "black"),legend.key=element_rect(fill="white"), legend.background = element_rect(fill = "white",color="grey",linewidth=0.5))
+	theme( axis.text = element_text(size=8), axis.title = element_text(size=8), text = element_text(size=7), panel.background = element_blank(), axis.line = element_line(colour = "black"),legend.key=element_rect(fill="white"), legend.background = element_rect(fill = "white",color="grey",linewidth=0.5))
 
 
 gg_legend <- get_legend(gg_dmri_legend, position = NULL)
 
 final_plot <- plot_grid(gg_tbm,gg_dmri, gg_legend, ncol=3, align="hv",  rel_widths = c(2, 2,1))
-ggsave(paste(sep="","/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/",cond,"/r2_plot.png" ) ,plot=final_plot, bg="white", width=320,height=150,unit="mm")
+ggsave(paste(sep="","/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/",cond,"/r2_plot.png" ) ,plot=final_plot, bg="white", width=184,height=199,unit="mm",dpi=1200)
 ggsave(paste(sep="","/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/",cond,"/r2_plot.svg" ) ,plot=final_plot, bg="white", width=320,height=150,unit="mm" )
 

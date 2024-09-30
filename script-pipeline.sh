@@ -1,7 +1,7 @@
 #!/bin/bash
 
 index=$1
-module load R
+module load R/R-4.2.2
 module load anaconda
 . ~/.bashrc
 
@@ -60,11 +60,17 @@ cond[34]="UKBB-risk-taking"
 cond[35]="AD-kunkle"
 cond[36]="handedness"
 cond[37]="handedness-L"
+cond[38]="else-WR" # Word reading
+cond[39]="else-SP" # Spelling
+cond[40]="else-PA" # Phonemic awareness
+cond[41]="else-NREAD" # Non-word reading
 
 #python=/usr/shared/apps/python/python-2.7.15/bin/python
 
-
 echo "Running ${cond[index]} on a node with $((node_cores+4)) cores (reserving $node_cores cores) and $node_mem GB memory, $node_free_mem GB of which is free."
+
+#if [ 0 -eq 1 ] ; then
+
 if [ ! -d /data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/${cond[index]} ];then mkdir /data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/${cond[index]} ;fi
 
 Rscript /data/clusterfs/lag/users/sousoh/ukbb/genetic/sbayesR/script-sumstat-preproc.R $index
@@ -75,13 +81,21 @@ Rscript /data/clusterfs/lag/users/sousoh/ukbb/genetic/sbayesR/script-sumstat-pre
         --w-ld-chr /data/workspaces/lag/shared_spaces/Resource_DB/LDscores/eur_w_ld_chr/ \
         --out /data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/${cond[index]}/ldsc_python_h2
 
-bash /data/clusterfs/lag/users/sousoh/ukbb/genetic/sbayesR/script-sbayesR.sh ${cond[index]} $node_cores
+
+#skip SBayesR
+#bash /data/clusterfs/lag/users/sousoh/ukbb/genetic/sbayesR/script-sbayesR.sh ${cond[index]} $node_cores
+
 #did it fail?
 if [ ! -f /data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/${cond[index]}/auto-sbayesr.pgs.snpRes ];then
 	cp /data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/sbayesr.plainzero.snpRes /data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/${cond[index]}/auto-sbayesr.pgs.snpRes
 fi	
 
-Rscript /data/clusterfs/lag/users/sousoh/ukbb/genetic/sbayesR/script-ldpred2-calculate-hapmap.R $index $node_cores
+#fi
+
+#temporarily skip lassosum2
+#Rscript /data/clusterfs/lag/users/sousoh/ukbb/genetic/sbayesR/script-ldpred2-calculate-hapmap.R $index $node_cores
+
+#if [ 0 -eq 1 ];then
 
 ###PRS-CS
 
@@ -117,7 +131,7 @@ done | $parallel -j $node_cores --colsep "\t" python /home/sousoh/software/PRScs
 --bim_prefix=/data/clusterfs/lag/users/sousoh/ukbb/genetic/bigsnp/big40 \
 --sst_file=/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/${cond[index]}/auto-sumstats.prs-cs \
 --chrom={2} --out_dir=/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/${cond[index]}/prs-cs/pgs {1} --n_gwas=$n_sample
-#--n_burnin=1 --n_iter=2 \
+
 
 for phi in auto 1e-06 1e-04 1e-02 1e+00;do
 for chr in {1..22};do
@@ -127,13 +141,17 @@ done
 
 rm /data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/${cond[index]}/prs-cs/pgs_pst*txt
 #### END PRS-CS
-
+#fi
 
 #Rscript /data/clusterfs/lag/users/sousoh/ukbb/genetic/sbayesR/script-pgs-corr-all-ics.R ${cond[index]}
 Rscript /data/clusterfs/lag/users/sousoh/ukbb/genetic/sbayesR/script-pgs-corr-three-models.R ${cond[index]}
 
-param_col_tbm=$(cat /data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/${cond[index]}/lasso/optimisation_points.txt |awk 'NR==2{print $1}')
-param_col_dmri=$(cat /data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/${cond[index]}/lasso/optimisation_points.txt |awk 'NR==2{print $2}')
+
+echo "Creating TBM design matrix with CS-auto PGS"
+echo "Creating dMRI design matrix with CS-auto PGS"
+
+bash /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-prs-design-matrix-generator-multimodal-normalise.sh ${cond[index]} cs_auto tbm
+bash /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-prs-design-matrix-generator-multimodal-normalise.sh ${cond[index]} cs_auto dmri
 
 echo "Creating TBM design matrix with SBayesR PGS"
 echo "Creating dMRI design matrix with SBayesR PGS"
@@ -141,11 +159,19 @@ echo "Creating dMRI design matrix with SBayesR PGS"
 bash /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-prs-design-matrix-generator-multimodal-normalise.sh ${cond[index]} sbayesr tbm
 bash /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-prs-design-matrix-generator-multimodal-normalise.sh ${cond[index]} sbayesr dmri
 
-echo "Creating TBM design matrix with regularisation column $param_col_tbm"
-echo "Creating dMRI design matrix with regularisation column $param_col_dmri"
+param_col_tbm=$(cat /data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/${cond[index]}/lasso/optimisation_points.txt |awk 'NR==2{print $1}')
+param_col_dmri=$(cat /data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/${cond[index]}/lasso/optimisation_points.txt |awk 'NR==2{print $2}')
 
-bash /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-prs-design-matrix-generator-multimodal-normalise.sh ${cond[index]} $param_col_tbm tbm
-bash /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-prs-design-matrix-generator-multimodal-normalise.sh ${cond[index]} $param_col_dmri dmri
+echo "Creating TBM design matrix with lassosum2 PGS regularisation column $param_col_tbm"
+echo "Creating dMRI design matrix with lassosum2 PGS regularisation column $param_col_dmri"
+
+#bash /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-prs-design-matrix-generator-multimodal-normalise.sh ${cond[index]} $param_col_tbm tbm
+#bash /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-prs-design-matrix-generator-multimodal-normalise.sh ${cond[index]} $param_col_dmri dmri
+
+bash /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-prs-design-matrix-generator-multimodal-normalise-edu-fl_intel.sh ${cond[index]} $param_col_tbm tbm
+bash /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-prs-design-matrix-generator-multimodal-normalise-edu-fl_intel.sh ${cond[index]} $param_col_dmri dmri
+
+
 
 randomise_script=/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/${cond[index]}/run_randomise.sh
 echo "qsub -q big.q -wd /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts \
@@ -159,11 +185,19 @@ echo "qsub -q big.q -wd /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-map
 
 echo "qsub -q big.q -wd /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts \
         -S /bin/bash -N rand_dmri_${cond[index]}_pos \
-        /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-LM-PRS.sh ${cond[index]} lasso_col_$param_col_dmri dmri pos" >> $randomise_script
+        /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-LM-PRS.sh ${cond[index]} lasso_col_${param_col_dmri} dmri pos edu-intel-avgafd" >> $randomise_script
 
 echo "qsub -q big.q -wd /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts \
         -S /bin/bash -N rand_dmri_${cond[index]}_neg \
-        /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-LM-PRS.sh ${cond[index]} lasso_col_$param_col_dmri dmri neg" >> $randomise_script
+        /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-LM-PRS.sh ${cond[index]} lasso_col_${param_col_dmri} dmri neg edu-intel-avgafd" >> $randomise_script
+
+echo "qsub -q big.q -wd /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts \
+        -S /bin/bash -N rand_tbm_${cond[index]}_pos \
+	/data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-LM-PRS.sh ${cond[index]} lasso_col_${param_col_tbm} tbm pos edu-intel" >> $randomise_script
+
+echo "qsub -q big.q -wd /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts \
+        -S /bin/bash -N rand_tbm_${cond[index]}_pos \
+	/data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-LM-PRS.sh ${cond[index]} lasso_col_${param_col_tbm} tbm pos edu-intel-headsize" >> $randomise_script
 
 ###SbayesR
 echo "qsub -q big.q -wd /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts \
@@ -183,7 +217,39 @@ echo "qsub -q big.q -wd /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-map
         -S /bin/bash -N rand_dmri_${cond[index]}_sbayesr_neg \
         /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-LM-PRS.sh ${cond[index]} sbayesr dmri neg" >> $randomise_script
 
+echo "qsub -q big.q -wd /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts \
+        -S /bin/bash -N rand_tbm_${cond[index]}_pos \
+	/data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-LM-PRS.sh ${cond[index]} sbayesr-edu-intel tbm pos absvol" >> $randomise_script
 
+echo "qsub -q big.q -wd /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts \
+        -S /bin/bash -N rand_tbm_${cond[index]}_pos \
+	/data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-LM-PRS.sh ${cond[index]} sbayesr-edu-intel-headsize tbm pos headsizecorr" >> $randomise_script
+
+
+###PRS-CS auto
+echo "qsub -q big.q -wd /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts \
+	-S /bin/bash -N rand_tbm_${cond[index]}_csauto_pos \
+	/data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-LM-PRS.sh ${cond[index]} cs_auto tbm pos" >> $randomise_script
+
+echo "qsub -q big.q -wd /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts \
+	-S /bin/bash -N rand_tbm_${cond[index]}_csauto_neg \
+	/data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-LM-PRS.sh ${cond[index]} cs_auto tbm neg" >> $randomise_script
+
+echo "qsub -q big.q -wd /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts \
+        -S /bin/bash -N rand_tbm_${cond[index]}_pos \
+	/data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-LM-PRS.sh ${cond[index]} cs_auto-edu-intel tbm pos absvol" >> $randomise_script
+
+echo "qsub -q big.q -wd /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts \
+        -S /bin/bash -N rand_tbm_${cond[index]}_pos \
+	/data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-LM-PRS.sh ${cond[index]} cs_auto-edu-intel-headsize tbm pos headsizecorr" >> $randomise_script
+
+echo "qsub -q big.q -wd /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts \
+        -S /bin/bash -N rand_dmri_${cond[index]}_csauto_pos \
+        /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-LM-PRS.sh ${cond[index]} cs_auto dmri pos" >> $randomise_script
+
+echo "qsub -q big.q -wd /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts \
+        -S /bin/bash -N rand_dmri_${cond[index]}_csauto_neg \
+        /data/clusterfs/lag/users/sousoh/ukbb/genetic/vaiant-maps/design-mat/scripts/script-LM-PRS.sh ${cond[index]} cs_auto dmri neg" >> $randomise_script
 
 Rscript /data/clusterfs/lag/users/sousoh/ukbb/genetic/sbayesR/script-ggsave.R ${cond[index]}
 

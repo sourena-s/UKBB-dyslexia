@@ -10,6 +10,12 @@ library(ggnewscale)
 core_count=16
 args = commandArgs(trailingOnly=TRUE)
 cond=as.character(args[1])
+
+
+
+pgs_subid<-read.table('/data/clusterfs/lag/users/sousoh/ukbb/genetic/bigsnp/list-all-subjects-genetics-subid-and-indices.txt',header=F)[,1]
+
+if (2==1) {
 obj.bigSNP.all <- snp_attach("/data/clusterfs/lag/users/sousoh/ukbb/genetic/bigsnp/processed/big40_all_subj_subset_hapmap_2k.rds")
 map <- as.data.frame(cbind(obj.bigSNP.all$map$chromosome,obj.bigSNP.all$map$rsid,obj.bigSNP.all$map$physical.pos,obj.bigSNP.all$map$allele1, obj.bigSNP.all$map$allele2))
 #check ref allele
@@ -26,9 +32,8 @@ sbayesr_score <- big_prodMat(obj.bigSNP.all$genotype, as.matrix(sbayesr_match$be
 write.table(sbayesr_score,        file=paste(sep="",'/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/',cond, '/auto-sbayesr.pgs'),quote=F,col.names=F,row.names=F)
 ####end todo
 
-
-
-pgs_subid<-read.table('/data/clusterfs/lag/users/sousoh/ukbb/genetic/bigsnp/list-all-subjects-genetics-subid-and-indices.txt',header=F)[,1]
+}
+sbayesr_score <- as.numeric(read.table(paste(sep="",'/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/',cond, '/auto-sbayesr.pgs'),header=F)[,1])
 
 ##PRS-CS
 cs_score <- list()
@@ -145,4 +150,85 @@ if (xca=="pca") {break}
 master_df[,3:20] <- sapply(master_df[,3:20],as.numeric)
 dir.create(file.path("/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs", cond,"component-results"), showWarnings = FALSE)
 write.table(master_df,file=paste(sep="","/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/",cond,"/component-results/master_df.txt"),quote=F,row.names=F)
+
+
+
+
+
+}
+
+
+
+b<-read.table(paste(sep="",'/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/',cond,'/lasso/grid-hapmap.params'),sep=",",header=T)
+master_df <- read.table(paste(sep="","/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/",cond,"/component-results/master_df.txt"),header=T)
+master_df[,3:10] <- sapply(master_df[,3:10],as.numeric)
+#find the max tbm rsq row
+master_df[which(master_df$lassosum_rsq==max(master_df[master_df$contrast=="tbm",]$lassosum_rsq)),]
+lambda_max <- master_df[which(master_df$lassosum_rsq==max(master_df[master_df$contrast=="tbm",]$lassosum_rsq)),]$lambda
+delta_max <- master_df[which(master_df$lassosum_rsq==max(master_df[master_df$contrast=="tbm",]$lassosum_rsq)),]$delta
+max_param_tbm <- which(b$lambda==lambda_max & b$delta==delta_max)
+max_ic_tbm <-  which(master_df$lassosum_rsq==max(master_df[master_df$contrast=="tbm",]$lassosum_rsq))
+
+#find the max dmri rsq row
+master_df[which(master_df$lassosum_rsq==max(master_df[master_df$contrast=="dmri",]$lassosum_rsq)),]
+lambda_max <- master_df[which(master_df$lassosum_rsq==max(master_df[master_df$contrast=="dmri",]$lassosum_rsq)),]$lambda
+delta_max <- master_df[which(master_df$lassosum_rsq==max(master_df[master_df$contrast=="dmri",]$lassosum_rsq)),]$delta
+max_param_dmri <- which(b$lambda==lambda_max & b$delta==delta_max)
+max_ic_dmri <-  which(master_df$lassosum_rsq==max(master_df[master_df$contrast=="dmri",]$lassosum_rsq))
+write_val <- as.data.frame(t(c(max_param_tbm,max_param_dmri, max_ic_tbm, max_ic_dmri, cond)))
+names(write_val) <- c("lassosum_param_col_tbm","lassosum_param_col_dmri","max_ic_tbm","max_ic_dmri","condition")
+write.table(write_val, paste(sep="",'/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/',cond,'/lasso/optimisation_points.txt'),sep=" ",col.names=T,quote=F,row.names=F)
+
+#contrast="dmri"; xca="ica";xca_dim=200;comp_id=30
+#comp_ids <- which(master_df$contrast==contrast & master_df$XCA==xca & master_df$dim==xca_dim & master_df$ic_num==comp_id)
+comp_ids_tbm <- which(master_df$contrast=="tbm" & master_df$XCA==master_df[max_ic_tbm,]$XCA & master_df$dim==master_df[max_ic_tbm,]$dim & master_df$ic_num==master_df[max_ic_tbm,]$ic_num)
+comp_ids_dmri <- which(master_df$contrast=="dmri" & master_df$XCA==master_df[max_ic_dmri,]$XCA & master_df$dim==master_df[max_ic_dmri,]$dim & master_df$ic_num==master_df[max_ic_dmri,]$ic_num)
+max_y <- max(master_df[comp_ids_tbm,]$lassosum_rsq, master_df[comp_ids_dmri,]$lassosum_rsq)
+
+comp_ids <- comp_ids_tbm
+
+if (master_df[max_ic_tbm,]$XCA == "ica") {dim_name=paste(sep="","-",master_df[max_ic_tbm,]$dim)}else{dim_name=""}
+
+gg_tbm <- ggplot(master_df[comp_ids,]) + geom_point(aes(x=log(lambda),color=factor(round(delta,2)),y=lassosum_rsq)) +
+        geom_line(aes(x=log(lambda),color=factor(round(delta,2)),y=lassosum_rsq,linetype="Lassosum2")) +
+        xlab("Lambda (L₁) regularisation") + ylab("IDP explained variance (R²)") +
+        ylim(c(0,1.1*max_y))   + theme(legend.position = "none") +
+        ggtitle(paste(sep="", "sMRI TBM\n", toupper(master_df[max_ic_tbm,]$XCA),dim_name, " component #",master_df[max_ic_tbm,]$ic_num)) +
+        geom_hline(aes(yintercept=master_df[comp_ids_tbm,]$sbayesR_rsq[1],linetype="SBayesR" ),color="black",linewidth=1,alpha=0.5)+
+         scale_linetype_manual("PGS type",values=c("Lassosum2"="solid","SBayesR"="dashed")) +  guides(linetype=guide_legend(keywidth = 3, keyheight = 1  )) + theme(legend.key=element_blank()) +
+        geom_label_repel(data=master_df[comp_ids,][master_df[comp_ids,]$lassosum_rsq==max(master_df[comp_ids,]$lassosum_rsq),],aes(x=log(lambda),y=lassosum_rsq, label= paste("R² =", round(max(master_df[comp_ids_tbm,]$lassosum_rsq),4)) ), nudge_x=0.5, nudge_y=25e-5  ) # + guides(colour=guide_legend(title="Delta regularisation (L2)"))
+
+comp_ids <- comp_ids_dmri
+
+if (master_df[max_ic_dmri,]$XCA == "ica") {dim_name=paste(sep="","-",master_df[max_ic_dmri,]$dim)}else{dim_name=""}
+gg_dmri <- ggplot(master_df[comp_ids,]) + geom_point(aes(x=log(lambda),color=factor(round(delta,2)),y=lassosum_rsq)) +
+        geom_line(aes(x=log(lambda),color=factor(round(delta,2)),y=lassosum_rsq,linetype="Lassosum2"   )) +
+        guides(colour=guide_legend(title="Delta (L₂) regularisation")) + xlab("Lambda (L₁) regularisation") + ylab("") + #ylab("IDP explained variance (R²)") +
+        ylim(c(0,1.1*max_y)) + theme(legend.position = "none") +
+        ggtitle(paste(sep="", "dMRI AFD\n", toupper(master_df[max_ic_dmri,]$XCA), dim_name, " component #",master_df[max_ic_dmri,]$ic_num )) +
+        geom_hline(aes(yintercept=master_df[comp_ids_dmri,]$sbayesR_rsq[1], linetype="SBayesR"),color="black",linewidth=1,alpha=0.5) +
+        scale_linetype_manual("PGS type",values=c("Lassosum2"="solid","SBayesR"="dashed")) +  guides(linetype=guide_legend(keywidth = 3, keyheight = 1  )) + theme(legend.key=element_blank()) +
+        geom_label_repel(data=master_df[comp_ids,][master_df[comp_ids,]$lassosum_rsq==max(master_df[comp_ids,]$lassosum_rsq),],aes(x=log(lambda),y=lassosum_rsq, label= paste("R² =", round(max(master_df[comp_ids_dmri,]$lassosum_rsq),4)) ), nudge_x=0.5, nudge_y=25e-5  )
+
+
+
+cond_capital <- paste(toupper(substr(cond, 1, 1)), substr(cond, 2, nchar(cond)), sep="")
+
+gg_dmri_legend <- ggplot(master_df[comp_ids,]) + geom_point(aes(x=log(lambda),color=factor(round(delta,2)),y=lassosum_rsq)) +
+        geom_line(aes(x=log(lambda),color=factor(round(delta,2)),y=lassosum_rsq ,linetype="Lassosum2"  )) +
+        guides(colour=guide_legend(title="Delta\nregularisation (L₂)"))+
+        xlab("Lambda regularisation (L₁)") + ylab("IDP explained variance (R²)") + ylim(c(0,1.1*max_y)) +
+        geom_hline(aes(yintercept=master_df[comp_ids,]$sbayesR_rsq[1] ,linetype="SBayesR" ),color="black",linewidth=1,alpha=0.5) +
+           scale_linetype_manual( paste(sep="", cond_capital  , "\nPGS type") ,values=c("Lassosum2"="solid","SBayesR"="dashed")) +
+           guides(linetype=guide_legend(keywidth = 3 , override.aes=list(alpha=1, linewidth=1 ) ) ) +
+           theme(legend.key=element_blank()) +
+        geom_label_repel(data=master_df[comp_ids,][master_df[comp_ids,]$lassosum_rsq==max(master_df[comp_ids,]$lassosum_rsq),],aes(x=log(lambda),y=lassosum_rsq, label= paste("R²:", round(max(master_df[comp_ids_dmri,]$lassosum_rsq),4)) ), nudge_x=0.5, nudge_y=1e-4  )
+
+
+gg_legend <- get_legend(gg_dmri_legend, position = NULL)
+
+final_plot <- plot_grid(gg_tbm,gg_dmri, gg_legend, ncol=3, align="hv",  rel_widths = c(2, 2,1))
+ggsave(paste(sep="","/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/",cond,"/r2_plot.png" ) ,plot=final_plot, bg="white")
+ggsave(paste(sep="","/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs-pgs/",cond,"/r2_plot.svg" ) ,plot=final_plot, bg="white")
+
 

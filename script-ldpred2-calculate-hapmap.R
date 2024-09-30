@@ -51,6 +51,10 @@ all_sumstats[34] <- "/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs/UKBB-risk-
 all_sumstats[35] <- "/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs/AD-kunkle/Kunkle_etal_Stage1_results_no_apoE_1MB_flank.txt"
 all_sumstats[36] <- "/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs/handedness/Ambidextrous_UKBB.txt"
 all_sumstats[37] <- "/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs/handedness-L/LeftHandedness_MetaAnalysis_UKBB_IHC.txt"
+all_sumstats[38] <- "/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs/else-WR/proc-sum"
+all_sumstats[39] <- "/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs/else-SP/proc-sum"
+all_sumstats[40] <- "/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs/else-PA/proc-sum"
+all_sumstats[41] <- "/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs/else-NREAD/proc-sum"
 
 
 cond <-vector()
@@ -91,6 +95,10 @@ cond[34] <- "UKBB-risk-taking"
 cond[35] <- "AD-kunkle"
 cond[36] <- "handedness"
 cond[37] <- "handedness-L"
+cond[38] <- "else-WR"
+cond[39] <- "else-SP"
+cond[40] <- "else-PA"
+cond[41] <- "else-NREAD"
 
 cond_name <- cond[i]
 
@@ -111,6 +119,9 @@ names(fam.order) <- c("family.ID", "sample.ID","FID", "IID")
 obj.bigSNP.all$fam <- fam.order
 
 sumstats <- readRDS(paste(sep=".",all_sumstats[i],"rds") )
+     #leftover from a small bug, the below two lines can now be removed
+     sumstats$a0 <- toupper(sumstats$a0)
+     sumstats$a1 <- toupper(sumstats$a1)
 
 cond_name <- cond[i]
 #single overlap: sumstat in the space of hapmap

@@ -49,6 +49,10 @@ all_sumstats[34] <- "/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs/UKBB-risk-
 all_sumstats[35] <- "/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs/AD-kunkle/Kunkle_etal_Stage1_results_no_apoE_1MB_flank.txt"
 all_sumstats[36] <- "/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs/handedness/Ambidextrous_UKBB.txt"
 all_sumstats[37] <- "/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs/handedness-L/LeftHandedness_MetaAnalysis_UKBB_IHC.txt"
+all_sumstats[38] <- "/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs/else-WR/proc-sum"
+all_sumstats[39] <- "/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs/else-SP/proc-sum"
+all_sumstats[40] <- "/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs/else-PA/proc-sum"
+all_sumstats[41] <- "/data/clusterfs/lag/users/sousoh/ukbb/misc-GWASs/else-NREAD/proc-sum"
 all_sumstat_colnames <- list()
 
 
@@ -99,7 +103,12 @@ all_sumstat_colnames[[35]] <- c("chr","pos","rsid","a1","a0","beta","beta_se","p
 all_sumstat_colnames[[36]] <- c("rsid","chr","pos","GENPOS","a1","a0","freq","info","CHISQ_LINREG","P_LINREG","beta","beta_se","CHISQ_BOLT_LMM_INF","p","n","n_eff")
 all_sumstat_colnames[[37]] <- c("rsid","a1","a0","freq","FreqSE","MinFreq","MaxFreq","n_eff","z","p","Direction","HetISq","HetChiSq","HetDf","HetPVal","chr","pos")
 
-#The standardized beta (i.e assuming both Y and X are transformed to have unit variance and mean zero) = Zscore*sqrt(Var(Y|X)/N)
+all_sumstat_colnames[[38]] <- c("rsid","a1","a0","Freq1","FreqSE","MinFreq","MaxFreq","beta","beta_se","p","Direction","HetISq","HetChiSq","HetDf","HetPVal","n_eff","CHRPOS","rsid2","chr","pos")
+all_sumstat_colnames[[39]] <- c("rsid","a1","a0","Freq1","FreqSE","MinFreq","MaxFreq","beta","beta_se","p","Direction","HetISq","HetChiSq","HetDf","HetPVal","n_eff","rsid2","chr","pos")
+all_sumstat_colnames[[40]] <- c("rsid","a1","a0","Freq1","FreqSE","MinFreq","MaxFreq","beta","beta_se","p","Direction","HetISq","HetChiSq","HetDf","HetPVal","n_eff","rsid2","chr","pos")
+all_sumstat_colnames[[41]] <- c("rsid","a1","a0","Freq1","FreqSE","MinFreq","MaxFreq","beta","beta_se","p","Direction","HetISq","HetChiSq","HetDf","HetPVal","n_eff","rsid2","chr","pos")
+
+				#The standardized beta (i.e assuming both Y and X are transformed to have unit variance and mean zero) = Zscore*sqrt(Var(Y|X)/N)
 
 #Var(Y|X) = 1/(1 + (Zscore*Zscore)/N)
 #Var(beta) = Var(Y|X)/N
@@ -147,6 +156,11 @@ cond[34] <- "UKBB-risk-taking"
 cond[35] <- "AD-kunkle"
 cond[36] <- "handedness"
 cond[37] <- "handedness-L"
+cond[38] <- "else-WR"
+cond[39] <- "else-SP"
+cond[40] <- "else-PA"
+cond[41] <- "else-NREAD"
+
 cond_name <- cond[i]
 
 ld<-readRDS('/data/clusterfs/lag/users/sousoh/ukbb/genetic/bigsnp/processed/matrix_big40_ld_hapmap.rds')
@@ -171,7 +185,7 @@ obj.bigSNP.all$fam <- fam.order
 
 #}else {
 print(paste("Reading summary stat file:",all_sumstats[i]))
-	sumstats <- read.table(all_sumstats[i],header=T)
+	sumstats <- fread(all_sumstats[i],header=T)
 
 	#check if UK Biobabnk header
 	if(i>=15 & i<=34) {
@@ -221,17 +235,20 @@ print(paste("Reading summary stat file:",all_sumstats[i]))
 	sumstats$var_y_x = 1/(1 + (sumstats$z ^ 2)/ sumstats$n_eff)
 	sumstats$beta <- sumstats$z * sqrt(sumstats$var_y_x / sumstats$n_eff)
 	sumstats$beta_se = sumstats$var_y_x  / sumstats$n_eff
-	sumstats$a0 <- toupper(sumstats$a0)
-	sumstats$a1 <- toupper(sumstats$a1)
 	}
+
 
 	sumstats$chr <- as.character(sumstats$chr)
 	sumstats <- sumstats[sumstats$chr!="X",]
 	sumstats$chr <- as.integer(sumstats$chr)
 	#sumstats <- sumstats[sumstats$n_eff==max(sumstats$n_eff),]
 	#sumstats <- sumstats %>% drop_na()
+	
+	sumstats$a0 <- toupper(sumstats$a0)
+	sumstats$a1 <- toupper(sumstats$a1)
+
 	saveRDS(sumstats,file=paste(sep=".",all_sumstats[i],"rds") )
-#}
+	#}
 
 #single overlap: sumstat in the space of hapmap
 info_snp <- snp_match(sumstats, join_by_pos = F, hapmap, return_flip_and_rev=T, strand_flip =F,  match.min.prop=0.05)
